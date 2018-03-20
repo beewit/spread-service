@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"encoding/json"
 	"github.com/beewit/beekit/utils/convert"
+	"github.com/beewit/beekit/utils/uhttp"
+	"github.com/beewit/beekit/utils"
 )
 
 func TestRedisList(t *testing.T) {
@@ -72,4 +74,47 @@ func TestUpdateCompany(t *testing.T) {
 		map[string]interface{}{"id": "1", "name": "", "tel": "023-98565648", "contacts_mobile": ""},
 		map[string]interface{}{"name": "张三", "tel": "023-98565647", "contacts_mobile": "182232"})
 	println(flog)
+}
+
+
+
+func TestGetCompanyPage(t *testing.T) {
+	e := echo.New()
+	f := url.Values{}
+	req := httptest.NewRequest(echo.POST, "/", strings.NewReader(f.Encode()))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	// 断言
+	if assert.NoError(t, handler.GetCompanyPage(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		t.Log(rec.Body.String())
+	}
+}
+
+
+func TestGetCompanyPageApi(t *testing.T) {
+	rp, err := ApiPost("http://127.0.0.1:8800/company/get/page?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.YE5cN3CIAq1Bk24hEU0euHz0tGcwW_NUhOaBy7diwF0&", nil)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	str, err2 := json.Marshal(rp)
+	if err2 != nil {
+		t.Error(err2.Error())
+	}
+	println(string(str))
+}
+
+
+func ApiPost(url string, m map[string]string) (utils.ResultParam, error) {
+	b, _ := json.Marshal(m)
+	body, err := uhttp.Cmd(uhttp.Request{
+		Method: "POST",
+		URL:    url,
+		Body:   b,
+	})
+	if err != nil {
+		return utils.ResultParam{}, err
+	}
+	return utils.ToResultParam(body), nil
 }

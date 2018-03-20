@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"github.com/beewit/beekit/utils"
+	"github.com/labstack/echo"
+	"github.com/beewit/beekit/utils/enum"
 )
 
 func GetCompany(name string) map[string]interface{} {
@@ -58,4 +60,39 @@ func UpdateCompany(m map[string]interface{}, newMap map[string]interface{}) bool
 		return false
 	}
 	return true
+}
+
+func GetCompanyPage(c echo.Context) error {
+	_, err := GetAccount(c)
+	if err != nil {
+		return utils.AuthFailNull(c)
+	}
+	province := c.FormValue("province")
+	city := c.FormValue("city")
+	//未过期并未领完的
+	var where string
+	if province != "" {
+		where += fmt.Sprintf(" AND province='%s'", province)
+	}
+	if city != "" {
+		where += fmt.Sprintf("  AND city='%s'", city)
+	}
+	pageIndex := utils.GetPageIndex(c.FormValue("pageIndex"))
+	pageSize := utils.GetPageSize(c.FormValue("pageSize"))
+	page, err := global.DB.QueryPage(&utils.PageTable{
+		Fields:    "*",
+		Table:     "company",
+		Where:     " status=?" + where,
+		PageIndex: pageIndex,
+		PageSize:  pageSize,
+		Order:     "ct_time DESC",
+	}, enum.NORMAL)
+	if err != nil {
+		global.Log.Error("QueryPage company sql error:%s", err.Error())
+		return utils.ErrorNull(c, "数据异常")
+	}
+	if page == nil {
+		return utils.NullData(c)
+	}
+	return utils.Success(c, "获取数据成功", page)
 }

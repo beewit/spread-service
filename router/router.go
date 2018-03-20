@@ -25,12 +25,13 @@ func Start() {
 	e.POST("/schedule/task/complete", handler.CompleteTask)
 	e.POST("/schedule/task/data/save", handler.SaveDataTask)
 
-
 	e.GET("/schedule/task/get", handler.GetTask)
 	e.GET("/schedule/task/save", handler.SaveTask)
 	e.GET("/schedule/task/failed", handler.FailedTask)
 	e.GET("/schedule/task/complete", handler.CompleteTask)
 	e.GET("/schedule/task/data/save", handler.SaveDataTask)
+
+	e.POST("/company/get/page", handler.GetCompanyPage, handler.Filter)
 
 	utils.Open(global.Host)
 	port := ":" + convert.ToString(global.Port)
