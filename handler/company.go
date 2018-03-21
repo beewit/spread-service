@@ -72,7 +72,7 @@ func GetCompanyPage(c echo.Context) error {
 	//未过期并未领完的
 	var where string
 	if province != "" {
-		where += fmt.Sprintf(" AND province='%s'", province)
+		where += fmt.Sprintf(" AND (province='%s市')", province)
 	}
 	if city != "" {
 		where += fmt.Sprintf("  AND city='%s'", city)
