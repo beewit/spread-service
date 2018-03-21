@@ -94,7 +94,7 @@ func TestGetCompanyPage(t *testing.T) {
 
 
 func TestGetCompanyPageApi(t *testing.T) {
-	rp, err := ApiPost("http://127.0.0.1:8800/company/get/page?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.YE5cN3CIAq1Bk24hEU0euHz0tGcwW_NUhOaBy7diwF0&", nil)
+	rp, err := ApiPost("http://spread-service.9ee3.com/company/get/page?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.HV8iAqo9biUNtnhxoTMT4KCC4PL60NMpHSaq7PqtZCc&province=四川省&city=乐山市", nil)
 	if err != nil {
 		t.Error(err.Error())
 	}
