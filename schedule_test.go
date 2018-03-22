@@ -93,8 +93,20 @@ func TestGetCompanyPage(t *testing.T) {
 }
 
 
+func TestDelCompany(t *testing.T) {
+	rp, err := ApiPost("http://spread-service.9ee3.com/account/del/company", nil)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	str, err2 := json.Marshal(rp)
+	if err2 != nil {
+		t.Error(err2.Error())
+	}
+	println(string(str))
+}
+
 func TestGetCompanyPageApi(t *testing.T) {
-	rp, err := ApiPost("http://spread-service.9ee3.com/company/get/page?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.HV8iAqo9biUNtnhxoTMT4KCC4PL60NMpHSaq7PqtZCc&province=四川省&city=乐山市", nil)
+	rp, err := ApiPost("http://spread-service.9ee3.com/company/get/page?province=四川省&city=乐山市", nil)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -113,6 +125,7 @@ func ApiPost(url string, m map[string]string) (utils.ResultParam, error) {
 		URL:    url,
 		Body:   b,
 	})
+	println(string(body))
 	if err != nil {
 		return utils.ResultParam{}, err
 	}
