@@ -8,6 +8,7 @@ import (
 	"github.com/beewit/beekit/utils"
 	"github.com/labstack/echo"
 	"github.com/beewit/beekit/utils/enum"
+	"time"
 )
 
 func GetCompany(name string) map[string]interface{} {
@@ -77,7 +78,8 @@ func GetCompanyPage(c echo.Context) error {
 	}
 	province := c.FormValue("province")
 	city := c.FormValue("city")
-	//未过期并未领完的
+	industry := c.FormValue("industry")
+	classify := c.FormValue("classify")
 	var where string
 	if province != "" {
 		province = strings.Replace(province, "回族自治区", "", -1)
@@ -90,22 +92,36 @@ func GetCompanyPage(c echo.Context) error {
 	if city != "" {
 		where += fmt.Sprintf("  AND city='%s'", city)
 	}
+	if classify != "" {
+		where += " AND (name LIKE '%" + classify + "%' OR intro LIKE '%" + classify + "%' OR main_business LIKE '%" + classify + "%')"
+	} else {
+		if industry != "" {
+			where += " AND (name LIKE '%" + industry + "%' OR intro LIKE '%" + industry + "%' OR main_business LIKE '%" + industry + "%')"
+		}
+	}
 	pageIndex := utils.GetPageIndex(c.FormValue("pageIndex"))
 	pageSize := utils.GetPageSize(c.FormValue("pageSize"))
+	beginTime := utils.FormatTime(time.Now().Add(-30 * 24 * time.Hour))
 	page, err := global.DB.QueryPage(&utils.PageTable{
-		Fields:    "company.*",
-		Table:     "company LEFT JOIN account_del_company del ON del.company_id=company.id AND del.account_id=? LEFT JOIN account_import_company import ON import.company_id=company.id AND import.account_id=?",
-		Where:     "company.status=? AND del.company_id IS NULL AND import.company_id IS NULL AND contacts_mobile IS NOT NULL AND contacts_mobile<>'' AND char_length(contacts_mobile)=11 " + where,
+		Fields: "company.*",
+		Table: "company LEFT JOIN account_del_company del ON del.company_id=company.id AND del.account_id=? " +
+			"LEFT JOIN account_import_company import ON import.company_id=company.id AND import.account_id=?",
+		Where: "company.status=? AND del.company_id IS NULL AND import.company_id IS NULL AND char_length(contacts_mobile)=11" +
+			" AND company.ct_time>? " + where,
 		PageIndex: pageIndex,
 		PageSize:  pageSize,
 		Order:     "company.ct_time DESC",
-	}, accId, accId, enum.NORMAL)
+	}, accId, accId, enum.NORMAL, beginTime)
 	if err != nil {
 		global.Log.Error("QueryPage company sql error:%s", err.Error())
 		return utils.ErrorNull(c, "数据异常")
 	}
 	if page == nil {
 		return utils.NullData(c)
+	}
+	m, _ := global.DB.Query("SELECT COUNT(1) AS count FROM company")
+	if len(m) > 0 {
+		page.Count = convert.MustInt(m[0]["count"])
 	}
 	return utils.Success(c, "获取数据成功", page)
 }
@@ -154,7 +170,7 @@ func GetImportCompany(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	rows, err := global.DB.Query("SELECT `import`.id as importId,name,contacts_name,contacts_mobile FROM account_import_company import " +
+	rows, err := global.DB.Query("SELECT `import`.id as importId,name,contacts_name,contacts_mobile FROM account_import_company import "+
 		"LEFT JOIN company ON import.company_id=company.id WHERE import.account_id=? AND import.status=0", acc.ID)
 	if err != nil {
 		global.Log.Error("GetImportCompany account_import_company sql ，error：", err.Error())
@@ -166,7 +182,6 @@ func GetImportCompany(c echo.Context) error {
 	return utils.SuccessNullMsg(c, rows)
 }
 
-
 /**
 获取导入的数据
  */
@@ -175,14 +190,14 @@ func GetImportCompanyCount(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	rows, err := global.DB.Query("SELECT count(1) as c FROM account_import_company import " +
+	rows, err := global.DB.Query("SELECT count(1) as c FROM account_import_company import "+
 		"LEFT JOIN company ON import.company_id=company.id WHERE import.account_id=? AND import.status=0", acc.ID)
 	if err != nil {
 		global.Log.Error("GetImportCompany account_import_company sql ，error：", err.Error())
 		return utils.ErrorNull(c, "获取导入数据失败")
 	}
 	if len(rows) < 1 {
-		return utils.SuccessNullMsg(c,0)
+		return utils.SuccessNullMsg(c, 0)
 	}
 	return utils.SuccessNullMsg(c, rows[0]["c"])
 }
@@ -199,12 +214,12 @@ func UpdateImportCompanyStatus(c echo.Context) error {
 	if idsStr == "" {
 		return utils.ErrorNull(c, "无有效id参数")
 	}
-	x, err := global.DB.Update(fmt.Sprintf("UPDATE account_import_company SET status=1 WHERE account_id=? AND id IN (%s)",idsStr), acc.ID)
+	x, err := global.DB.Update(fmt.Sprintf("UPDATE account_import_company SET status=1 WHERE account_id=? AND id IN (%s)", idsStr), acc.ID)
 	if err != nil {
 		global.Log.Error("GetImportCompany account_import_company sql ，error：", err.Error())
 		return utils.ErrorNull(c, "获取导入数据失败")
 	}
-	if  x < 1 {
+	if x < 1 {
 		return utils.NullData(c)
 	}
 	return utils.SuccessNull(c, "修改导入状态成功")
